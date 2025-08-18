@@ -7,11 +7,11 @@ import (
 
 type Logger struct {
 	Truecolor bool
-	messages  []Message
+	messages  []message
 	color     string
 }
 
-type Message struct {
+type message struct {
 	Color string
 	Input string
 }
@@ -29,64 +29,64 @@ func convertHex(hex string) string {
 	return fmt.Sprintf("\x1b[%d;2;%d;%d;%dm", prefix, r, g, b)
 }
 
-func (logger *Logger) Color(color string, fallback int, message ...string) *Logger {
+func (logger *Logger) Color(color string, fallback int, input ...string) *Logger {
 	if logger.Truecolor {
 		logger.color = color
 	} else {
 		logger.color = fmt.Sprintf("\x1b[38;5;%dm", fallback) //TODO: background support?
 	}
 
-	if len(message) > 0 {
-		logger.messages = append(logger.messages, Message{
+	if len(input) > 0 {
+		logger.messages = append(logger.messages, message{
 			Color: logger.color,
-			Input: message[0],
+			Input: input[0],
 		})
 	}
 	return logger
 }
 
-func (logger *Logger) Red(message ...string) *Logger {
-	return logger.Color("#ff0000", 9, message...)
+func (logger *Logger) Red(input ...string) *Logger {
+	return logger.Color("#ff0000", 9, input...)
 }
 
-func (logger *Logger) Orange(message ...string) *Logger {
-	return logger.Color("#ff8700", 208, message...)
+func (logger *Logger) Orange(input ...string) *Logger {
+	return logger.Color("#ff8700", 208, input...)
 }
 
-func (logger *Logger) Yellow(message ...string) *Logger {
-	return logger.Color("#ffff00", 226, message...)
+func (logger *Logger) Yellow(input ...string) *Logger {
+	return logger.Color("#ffff00", 226, input...)
 }
 
-func (logger *Logger) Green(message ...string) *Logger {
-	return logger.Color("#00ff00", 10, message...)
+func (logger *Logger) Green(input ...string) *Logger {
+	return logger.Color("#00ff00", 10, input...)
 }
 
-func (logger *Logger) Aqua(message ...string) *Logger {
-	return logger.Color("#00ffff", 14, message...)
+func (logger *Logger) Aqua(input ...string) *Logger {
+	return logger.Color("#00ffff", 14, input...)
 }
 
-func (logger *Logger) Blue(message ...string) *Logger {
-	return logger.Color("#5f87ff", 69, message...)
+func (logger *Logger) Blue(input ...string) *Logger {
+	return logger.Color("#5f87ff", 69, input...)
 }
 
-func (logger *Logger) Blurple(message ...string) *Logger {
-	return logger.Color("#5f5fff ", 63, message...)
+func (logger *Logger) Blurple(input ...string) *Logger {
+	return logger.Color("#5f5fff", 63, input...)
 }
 
-func (logger *Logger) Purple(message ...string) *Logger {
-	return logger.Color("#af5fff", 135, message...)
+func (logger *Logger) Purple(input ...string) *Logger {
+	return logger.Color("#af5fff", 135, input...)
 }
 
-func (logger *Logger) Magenta(message ...string) *Logger {
-	return logger.Color("#ff00ff", 13, message...)
+func (logger *Logger) Magenta(input ...string) *Logger {
+	return logger.Color("#ff00ff", 13, input...)
 }
 
-func (logger *Logger) Pink(message ...string) *Logger {
-	return logger.Color("#ff5faf", 205, message...)
+func (logger *Logger) Pink(input ...string) *Logger {
+	return logger.Color("#ff5faf", 205, input...)
 }
 
-func (logger *Logger) Rose(message ...string) *Logger {
-	return logger.Color("#ff0087", 198, message...)
+func (logger *Logger) Rose(input ...string) *Logger {
+	return logger.Color("#ff0087", 198, input...)
 }
 
 func (logger *Logger) Reset() *Logger {
@@ -94,13 +94,13 @@ func (logger *Logger) Reset() *Logger {
 	return logger
 }
 
-func (logger *Logger) Send(message ...string) *Logger {
+func (logger *Logger) Send(input ...string) *Logger {
 	var output string
 
-	if len(message) > 0 {
-		logger.messages = append(logger.messages, Message{
+	if len(input) > 0 {
+		logger.messages = append(logger.messages, message{
 			Color: logger.color,
-			Input: message[0],
+			Input: input[0],
 		})
 	}
 
@@ -113,7 +113,7 @@ func (logger *Logger) Send(message ...string) *Logger {
 	}
 
 	logger.messages = nil
-	logger.messages = make([]Message, 0)
+	logger.messages = make([]message, 0)
 
 	output += "\x1b[0m" // Reset color at the end
 	fmt.Println(output)
