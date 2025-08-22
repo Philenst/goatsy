@@ -149,11 +149,19 @@ func (l *logger) send(traced bool, input ...string) *logger {
 	}
 
 	if l.name != "" {
-		output += l.color + fmt.Sprintf("%-*s | ", padding, l.name)
+		if l.truecolor {
+			output += convertHex(l.color) + fmt.Sprintf("%-*s | ", padding, l.name)
+		} else {
+			output += l.color + fmt.Sprintf("%-*s | ", padding, l.name)
+		}
 	}
 
 	if l.timeFormat != "" {
-		output += l.color + fmt.Sprintf("%s | ", time.Now().Format(l.timeFormat))
+		if l.truecolor {
+			output += convertHex(l.color) + fmt.Sprintf("%s | ", time.Now().Format(l.timeFormat))
+		} else {
+			output += l.color + fmt.Sprintf("%s | ", time.Now().Format(l.timeFormat))
+		}
 	}
 
 	for _, msg := range l.messages {
