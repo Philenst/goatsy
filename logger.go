@@ -182,7 +182,12 @@ func (l *logger) send(traced bool, input ...string) *logger {
 			file, line = "Unknown", 0
 		}
 
-		output += l.color + fmt.Sprintf(" → %s:%d", file, line)
+		if l.truecolor {
+			output += convertHex(l.color) + fmt.Sprintf(" → %s:%d", file, line)
+		} else {
+			output += l.color + fmt.Sprintf(" → %s:%d", file, line)
+		}
+
 	}
 
 	output += "\x1b[0m" // Reset color at the end
