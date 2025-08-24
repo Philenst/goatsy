@@ -176,7 +176,7 @@ func (l *logger) send(traced bool, input ...string) *logger {
 	l.messages = make([]message, 0)
 
 	if traced {
-		_, file, line, ok := runtime.Caller(1)
+		_, file, line, ok := runtime.Caller(2)
 		
 		if !ok {
 			file, line = "Unknown", 0
