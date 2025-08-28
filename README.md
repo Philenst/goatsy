@@ -89,7 +89,7 @@ logger2.Rename("Nanoo").
 Send("Welcome back, Tim!") 
 
 
-logger3.ChangeTag("Mina").
+logger3.Rename("Mina").
 Send("He's back already?")
 // => Tim   | Hey Nanoo!
 // => Nanoo | Welcome back, Tim!
@@ -128,6 +128,7 @@ import (
 var logger = goatsy.New(&goatsy.Options{
     Truecolor: true,
     Name: "[Info]",
+    TimeFormat: time.DateTime
 }).Blue()
 
 logger.Send("This is supposed to serve valuable information.")

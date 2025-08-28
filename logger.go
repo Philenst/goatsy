@@ -11,17 +11,17 @@ var padding int = 0
 var names = map[string]int{}
 
 type Options struct {
-	Truecolor bool
-	Name string
+	Truecolor  bool
+	Name       string
 	TimeFormat string
 }
 
-type logger struct {
-	truecolor bool
-	name string
+type Logger struct {
+	truecolor  bool
+	name       string
 	timeFormat string
-	messages  []message
-	color     string
+	messages   []message
+	color      string
 }
 
 type message struct {
@@ -29,16 +29,16 @@ type message struct {
 	Input string
 }
 
-func New(options *Options) *logger {
+func New(options *Options) *Logger {
 	if options.Name != "" {
 		if len(options.Name) > padding {
 			padding = len(options.Name)
 		}
 	}
 	names[options.Name] = len(options.Name)
-	return &logger{
-		truecolor: options.Truecolor,
-		name: options.Name,
+	return &Logger{
+		truecolor:  options.Truecolor,
+		name:       options.Name,
 		timeFormat: options.TimeFormat,
 	}
 }
@@ -56,7 +56,7 @@ func convertHex(hex string) string {
 	return fmt.Sprintf("\x1b[%d;2;%d;%d;%dm", prefix, r, g, b)
 }
 
-func (l *logger) Color(color string, fallback int, input ...string) *logger {
+func (l *Logger) Color(color string, fallback int, input ...string) *Logger {
 	if l.truecolor {
 		l.color = color
 	} else {
@@ -72,56 +72,56 @@ func (l *logger) Color(color string, fallback int, input ...string) *logger {
 	return l
 }
 
-func (l *logger) Red(input ...string) *logger {
+func (l *Logger) Red(input ...string) *Logger {
 	return l.Color("#ff0000", 9, input...)
 }
 
-func (l *logger) Orange(input ...string) *logger {
+func (l *Logger) Orange(input ...string) *Logger {
 	return l.Color("#ff8700", 208, input...)
 }
 
-func (l *logger) Yellow(input ...string) *logger {
+func (l *Logger) Yellow(input ...string) *Logger {
 	return l.Color("#ffff00", 226, input...)
 }
 
-func (l *logger) Green(input ...string) *logger {
+func (l *Logger) Green(input ...string) *Logger {
 	return l.Color("#00ff00", 10, input...)
 }
 
-func (l *logger) Aqua(input ...string) *logger {
+func (l *Logger) Aqua(input ...string) *Logger {
 	return l.Color("#00ffff", 14, input...)
 }
 
-func (l *logger) Blue(input ...string) *logger {
+func (l *Logger) Blue(input ...string) *Logger {
 	return l.Color("#5f87ff", 69, input...)
 }
 
-func (l *logger) Blurple(input ...string) *logger {
+func (l *Logger) Blurple(input ...string) *Logger {
 	return l.Color("#5f5fff", 63, input...)
 }
 
-func (l *logger) Purple(input ...string) *logger {
+func (l *Logger) Purple(input ...string) *Logger {
 	return l.Color("#af5fff", 135, input...)
 }
 
-func (l *logger) Magenta(input ...string) *logger {
+func (l *Logger) Magenta(input ...string) *Logger {
 	return l.Color("#ff00ff", 13, input...)
 }
 
-func (l *logger) Pink(input ...string) *logger {
+func (l *Logger) Pink(input ...string) *Logger {
 	return l.Color("#ff5faf", 205, input...)
 }
 
-func (l *logger) Rose(input ...string) *logger {
+func (l *Logger) Rose(input ...string) *Logger {
 	return l.Color("#ff0087", 198, input...)
 }
 
-func (l *logger) Reset() *logger {
+func (l *Logger) Reset() *Logger {
 	fmt.Print("\x1b[0m")
 	return l
 }
 
-func scan(){
+func scan() {
 	h := 0
 	for _, v := range names {
 		if v > h {
@@ -131,14 +131,14 @@ func scan(){
 	padding = h
 }
 
-func (l *logger) Destroy() {
+func (l *Logger) Destroy() {
 	delete(names, l.name)
 	if len(l.name) == padding {
 		scan()
 	}
 }
 
-func (l *logger) send(traced bool, input ...string) *logger {
+func (l *Logger) send(traced bool, input ...string) *Logger {
 	var output string
 
 	if len(input) > 0 {
@@ -177,7 +177,7 @@ func (l *logger) send(traced bool, input ...string) *logger {
 
 	if traced {
 		_, file, line, ok := runtime.Caller(2)
-		
+
 		if !ok {
 			file, line = "Unknown", 0
 		}
@@ -195,22 +195,22 @@ func (l *logger) send(traced bool, input ...string) *logger {
 	return l
 }
 
-func (l *logger) Send(input ...string) *logger {
+func (l *Logger) Send(input ...string) *Logger {
 	return l.send(false, input...)
 }
 
-func (l *logger) Trace(input ...string) *logger {
+func (l *Logger) Trace(input ...string) *Logger {
 	return l.send(true, input...)
 }
 
-func (l *logger) Rename(name string) *logger {
+func (l *Logger) Rename(name string) *Logger {
 	delete(names, l.name)
 	names[name] = len(name)
 
-	if(len(name) >= padding){
+	if len(name) >= padding {
 		l.name = name
 		padding = len(name)
-		return l;
+		return l
 	}
 
 	if len(l.name) == padding {
