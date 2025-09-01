@@ -121,20 +121,16 @@ func (l *Logger) Reset() *Logger {
 	return l
 }
 
-func scan() {
-	h := 0
-	for _, v := range names {
-		if v > h {
-			h = v
-		}
-	}
-	padding = h
-}
-
 func (l *Logger) Destroy() {
 	delete(names, l.name)
 	if len(l.name) == padding {
-		scan()
+		h := 0
+		for _, v := range names {
+			if v > h {
+				h = v
+			}
+		}
+		padding = h
 	}
 }
 
@@ -207,15 +203,12 @@ func (l *Logger) Rename(name string) *Logger {
 	delete(names, l.name)
 	names[name] = len(name)
 
-	if len(name) >= padding {
-		l.name = name
+	l.name = name
+
+	if len(name) > padding {
 		padding = len(name)
 		return l
 	}
 
-	if len(l.name) == padding {
-		l.name = name
-		scan()
-	}
 	return l
 }
