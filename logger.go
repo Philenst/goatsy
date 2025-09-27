@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 )
 
 var padding int = 0
 var names = map[string]int{}
+var mu sync.Mutex
 
 type Options struct {
 	Truecolor  bool
@@ -17,6 +19,7 @@ type Options struct {
 }
 
 type Logger struct {
+	mu         sync.Mutex
 	truecolor  bool
 	name       string
 	timeFormat string
@@ -30,6 +33,8 @@ type message struct {
 }
 
 func New(options *Options) *Logger {
+	mu.Lock()
+	defer mu.Unlock()
 	if options.Name != "" {
 		if len(options.Name) > padding {
 			padding = len(options.Name)
@@ -57,6 +62,8 @@ func convertHex(hex string) string {
 }
 
 func (l *Logger) Color(color string, fallback int, input ...string) *Logger {
+	l.mu.Lock()
+	defer l.mu.Unlock()
 	if l.truecolor {
 		l.color = color
 	} else {
@@ -122,6 +129,8 @@ func (l *Logger) Reset() *Logger {
 }
 
 func (l *Logger) Destroy() {
+	mu.Lock()
+	defer mu.Unlock()
 	delete(names, l.name)
 	if len(l.name) == padding {
 		h := 0
@@ -135,8 +144,7 @@ func (l *Logger) Destroy() {
 }
 
 func (l *Logger) send(traced bool, input ...string) *Logger {
-	var output string
-
+	l.mu.Lock()
 	if len(input) > 0 {
 		l.messages = append(l.messages, message{
 			Color: l.color,
@@ -144,23 +152,36 @@ func (l *Logger) send(traced bool, input ...string) *Logger {
 		})
 	}
 
-	if l.name != "" {
+	msgs := append([]message(nil), l.messages...)
+	color := l.color
+	name := l.name
+	timeFormat := l.timeFormat
+	l.messages = nil
+	l.mu.Unlock()
+
+	var output string
+	if name != "" {
+		mu.Lock()
+		pad := padding
+		mu.Unlock()
+
 		if l.truecolor {
-			output += convertHex(l.color) + fmt.Sprintf("%-*s | ", padding, l.name)
+			output += convertHex(color) + fmt.Sprintf("%-*s | ", pad, name)
 		} else {
-			output += l.color + fmt.Sprintf("%-*s | ", padding, l.name)
+			output += color + fmt.Sprintf("%-*s | ", pad, name)
 		}
 	}
 
-	if l.timeFormat != "" {
+	if timeFormat != "" {
+		ts := time.Now().Format(timeFormat)
 		if l.truecolor {
-			output += convertHex(l.color) + fmt.Sprintf("%s | ", time.Now().Format(l.timeFormat))
+			output += convertHex(color) + fmt.Sprintf("%s | ", ts)
 		} else {
-			output += l.color + fmt.Sprintf("%s | ", time.Now().Format(l.timeFormat))
+			output += color + fmt.Sprintf("%s | ", ts)
 		}
 	}
 
-	for _, msg := range l.messages {
+	for _, msg := range msgs {
 		if l.truecolor {
 			output += convertHex(msg.Color) + msg.Input
 		} else {
@@ -168,25 +189,19 @@ func (l *Logger) send(traced bool, input ...string) *Logger {
 		}
 	}
 
-	l.messages = nil
-	l.messages = make([]message, 0)
-
 	if traced {
 		_, file, line, ok := runtime.Caller(2)
-
 		if !ok {
 			file, line = "Unknown", 0
 		}
-
 		if l.truecolor {
-			output += convertHex(l.color) + fmt.Sprintf(" → %s:%d", file, line)
+			output += convertHex(color) + fmt.Sprintf(" → %s:%d", file, line)
 		} else {
-			output += l.color + fmt.Sprintf(" → %s:%d", file, line)
+			output += color + fmt.Sprintf(" → %s:%d", file, line)
 		}
-
 	}
 
-	output += "\x1b[0m" // Reset color at the end
+	output += "\x1b[0m"
 	fmt.Println(output)
 	return l
 }
@@ -200,6 +215,10 @@ func (l *Logger) Trace(input ...string) *Logger {
 }
 
 func (l *Logger) Rename(name string) *Logger {
+	l.mu.Lock()
+	mu.Lock()
+	defer mu.Unlock()
+	defer l.mu.Unlock()
 	delete(names, l.name)
 	names[name] = len(name)
 
