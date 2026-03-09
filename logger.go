@@ -146,13 +146,6 @@ func formatConsole(e entry) string {
 func formatFile(e entry) string {
 	var output string
 
-	if e.name != "" {
-		mu.Lock()
-		pad := padding
-		mu.Unlock()
-		output += fmt.Sprintf("%-*s | ", pad, e.name)
-	}
-
 	if e.timeFormat != "" {
 		output += fmt.Sprintf("%s | ", time.Now().Format(e.timeFormat))
 	}
