@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -21,13 +22,15 @@ type Options struct {
 }
 
 type Logger struct {
-	mu         sync.Mutex
-	truecolor  bool
-	name       string
-	timeFormat string
-	messages   []message
-	color      string
-	file       *os.File
+	mu          sync.Mutex
+	truecolor   bool
+	name        string
+	timeFormat  string
+	messages    []message
+	color       string
+	logPath     string
+	file        *os.File
+	currentDate string
 }
 
 type message struct {
@@ -41,7 +44,6 @@ type entry struct {
 	truecolor  bool
 	color      string
 	messages   []message
-	file       *os.File
 }
 
 func New(options *Options) *Logger {
@@ -53,21 +55,52 @@ func New(options *Options) *Logger {
 	}
 	names[options.Name] = len(options.Name)
 
-	var file *os.File
-	if options.LogPath != "" {
-		_ = os.MkdirAll(filepath.Dir(options.LogPath), 0755)
-		f, err := os.OpenFile(options.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-		if err == nil {
-			file = f
-		}
-	}
-
 	return &Logger{
 		truecolor:  options.Truecolor,
 		name:       options.Name,
 		timeFormat: options.TimeFormat,
-		file:       file,
+		logPath:    options.LogPath,
 	}
+}
+
+func datedLogPath(basePath, date string) string {
+	ext := filepath.Ext(basePath)
+	name := strings.TrimSuffix(filepath.Base(basePath), ext)
+	dir := filepath.Dir(basePath)
+
+	if ext == "" {
+		ext = ".log"
+	}
+
+	return filepath.Join(dir, fmt.Sprintf("%s-%s%s", name, date, ext))
+}
+
+func (l *Logger) ensureLogFile(now time.Time) *os.File {
+	if l.logPath == "" {
+		return nil
+	}
+
+	date := now.Format("2006-01-02")
+	if l.file != nil && l.currentDate == date {
+		return l.file
+	}
+
+	if l.file != nil {
+		_ = l.file.Close()
+		l.file = nil
+	}
+
+	fullPath := datedLogPath(l.logPath, date)
+	_ = os.MkdirAll(filepath.Dir(fullPath), 0755)
+
+	f, err := os.OpenFile(fullPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return nil
+	}
+
+	l.file = f
+	l.currentDate = date
+	return l.file
 }
 
 func convertHex(hex string) string {
@@ -100,14 +133,13 @@ func (l *Logger) flush(input ...string) entry {
 		truecolor:  l.truecolor,
 		color:      l.color,
 		messages:   msgs,
-		file:       l.file,
 	}
 
 	l.messages = nil
 	return e
 }
 
-func formatConsole(e entry) string {
+func formatConsole(e entry, now time.Time) string {
 	var output string
 
 	if e.name != "" {
@@ -123,7 +155,7 @@ func formatConsole(e entry) string {
 	}
 
 	if e.timeFormat != "" {
-		ts := time.Now().Format(e.timeFormat)
+		ts := now.Format(e.timeFormat)
 		if e.truecolor {
 			output += convertHex(e.color) + fmt.Sprintf("%s | ", ts)
 		} else {
@@ -143,11 +175,11 @@ func formatConsole(e entry) string {
 	return output
 }
 
-func formatFile(e entry) string {
+func formatFile(e entry, now time.Time) string {
 	var output string
 
 	if e.timeFormat != "" {
-		output += fmt.Sprintf("%s | ", time.Now().Format(e.timeFormat))
+		output += fmt.Sprintf("%s | ", now.Format(e.timeFormat))
 	}
 
 	for _, msg := range e.messages {
@@ -222,21 +254,45 @@ func (l *Logger) Rose(input ...string) *Logger {
 }
 
 func (l *Logger) Save(input ...string) *Logger {
+	now := time.Now()
 	e := l.flush(input...)
-	if e.file != nil {
-		_, _ = e.file.WriteString(formatFile(e) + "\n")
+
+	l.mu.Lock()
+	file := l.ensureLogFile(now)
+	l.mu.Unlock()
+
+	if file != nil {
+		_, _ = file.WriteString(formatFile(e, now) + "\n")
 	}
+
 	return l
 }
 
 func (l *Logger) Log(input ...string) *Logger {
+	now := time.Now()
 	e := l.flush(input...)
-	fmt.Println(formatConsole(e))
-	if e.file != nil {
-		_, _ = e.file.WriteString(formatFile(e) + "\n")
+
+	fmt.Println(formatConsole(e, now))
+
+	l.mu.Lock()
+	file := l.ensureLogFile(now)
+	l.mu.Unlock()
+
+	if file != nil {
+		_, _ = file.WriteString(formatFile(e, now) + "\n")
 	}
+
 	return l
 }
+
+func (l *Logger) Send(input ...string) *Logger {
+	now := time.Now()
+	e := l.flush(input...)
+	fmt.Println(formatConsole(e, now))
+	return l
+}
+
+
 
 func (l *Logger) Reset() *Logger {
 	fmt.Print("\x1b[0m")
