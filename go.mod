@@ -1,3 +1,3 @@
-module github.com/philsty/goatsy
+module github.com/philenst/goatsy
 
 go 1.24.5
