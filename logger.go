@@ -2,6 +2,7 @@ package goatsy
 
 import (
 	"fmt"
+	"os"
 	"runtime"
 	"strconv"
 	"sync"
@@ -16,6 +17,7 @@ type Options struct {
 	Truecolor  bool
 	Name       string
 	TimeFormat string
+	LogPath    string
 }
 
 type Logger struct {
@@ -25,6 +27,7 @@ type Logger struct {
 	timeFormat string
 	messages   []message
 	color      string
+	file       *os.File
 }
 
 type message struct {
@@ -41,10 +44,20 @@ func New(options *Options) *Logger {
 		}
 	}
 	names[options.Name] = len(options.Name)
+	var file *os.File
+	if options.LogPath != "" {
+		if options.LogPath != "" {
+			f, err := os.OpenFile(options.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+			if err == nil {
+				file = f
+			}
+		}
+	}
 	return &Logger{
 		truecolor:  options.Truecolor,
 		name:       options.Name,
 		timeFormat: options.TimeFormat,
+		file:       file,
 	}
 }
 
@@ -206,12 +219,67 @@ func (l *Logger) send(traced bool, input ...string) *Logger {
 	return l
 }
 
+func (l *Logger) save(input ...string) *Logger {
+	l.mu.Lock()
+
+	if len(input) > 0 {
+		l.messages = append(l.messages, message{
+			Input: input[0],
+		})
+	}
+
+	msgs := append([]message(nil), l.messages...)
+	name := l.name
+	timeFormat := l.timeFormat
+	file := l.file
+	l.messages = nil
+
+	l.mu.Unlock()
+
+	if file == nil {
+		return l
+	}
+
+	var output string
+
+	if name != "" {
+		mu.Lock()
+		pad := padding
+		mu.Unlock()
+		output += fmt.Sprintf("%-*s | ", pad, name)
+	}
+
+	if timeFormat != "" {
+		output += fmt.Sprintf("%s | ", time.Now().Format(timeFormat))
+	}
+
+	for _, msg := range msgs {
+		output += msg.Input
+	}
+
+	output += "\n"
+
+	file.WriteString(output)
+
+	return l
+}
+
 func (l *Logger) Send(input ...string) *Logger {
 	return l.send(false, input...)
 }
 
+func (l *Logger) Save(input ...string) *Logger {
+	return l.save(input...)
+}
+
 func (l *Logger) Trace(input ...string) *Logger {
 	return l.send(true, input...)
+}
+
+func (l *Logger) Log(input ...string) *Logger {
+	l.send(false, input...)
+	l.save(input...)
+	return l
 }
 
 func (l *Logger) Rename(name string) *Logger {
