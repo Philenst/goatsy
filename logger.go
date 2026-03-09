@@ -46,11 +46,9 @@ func New(options *Options) *Logger {
 	names[options.Name] = len(options.Name)
 	var file *os.File
 	if options.LogPath != "" {
-		if options.LogPath != "" {
-			f, err := os.OpenFile(options.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-			if err == nil {
-				file = f
-			}
+		f, err := os.OpenFile(options.LogPath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+		if err == nil {
+			file = f
 		}
 	}
 	return &Logger{
